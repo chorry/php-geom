@@ -39,8 +39,6 @@
  */
 abstract class RectangularShape implements Shape
 {
-
-
     /**
      * Returns the X coordinate of the upper-left corner of
      * the framing rectangle.
@@ -331,8 +329,7 @@ abstract class RectangularShape implements Shape
         $args = func_get_args();
         switch (count($args)) {
             case 2:
-                //TODO
-                $result = $this->containsFromShape($args[0], $args[1]);
+                $result = $this->contains($args[0], $args[1]);
                 break;
             case 1:
                 $result = ($args[0] instanceof Point2D)
@@ -358,7 +355,7 @@ abstract class RectangularShape implements Shape
      * {@inheritDoc}
      * @since 1.2
      */
-    private function containsRectangle(Rectangle2D $r)
+    public function containsRectangle(Rectangle2D $r)
     {
         return $this->contains($r->getX(), $r->getY(), $r->getWidth(), $r->getHeight());
     }
@@ -367,10 +364,29 @@ abstract class RectangularShape implements Shape
      * {@inheritDoc}
      * @since 1.2
      */
-    public function intersects(Rectangle2D $r)
+    public function intersects()
     {
-        //TODO
-        return $this->intersectsFromShape($r->getX(), $r->getY(), $r->getWidth(), $r->getHeight());
+        $args = func_get_args();
+        switch(count($args)) {
+            case 4:
+                $result = $this->intersects4Params($args[0], $args[1], $args[2], $args[3]);
+                break;
+            case 1:
+                $result = $this->intersectsRectangle2D($args[0]);
+                break;
+            default:
+                throw new InvalidArgumentException();
+        }
+        return $result;
+    }
+
+    /**
+     * @param Rectangle2D $r
+     * @return bool
+     */
+    public function intersectsRectangle2D(Rectangle2D $r)
+    {
+        return $this->intersects4Params($r->getX(), $r->getY(), $r->getWidth(), $r->getHeight());
     }
 
 
@@ -421,9 +437,8 @@ abstract class RectangularShape implements Shape
      *          the Shape object's flattened geometry.
      * @since 1.2
      */
-    public function getPathIterator(AffineTransform $at, $flatness)
+    public function getPathIteratorByATAndFlatness(AffineTransform $at, $flatness)
     {
-        //TODO
         return new FlatteningPathIterator($this->getPathIteratorFromShape($at), $flatness);
     }
 

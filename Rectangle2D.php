@@ -331,26 +331,26 @@ class Rectangle2D extends RectangularShape
      */
     private function intersectsLineBy4($x1, $y1, $x2, $y2)
     {
-        if (($out2 = $this->outcode($x2, $y2)) == 0) {
+        if (($out2 = $this->outcode($x2, $y2)) === 0) {
             return true;
         }
-        while (($out1 = $this->outcode($x1, $y1)) != 0) {
-            if (($out1 & $out2) != 0) {
+        while (($out1 = $this->outcode($x1, $y1)) !== 0) {
+            if (($out1 & $out2) !== 0) {
                 return false;
             }
-            if (($out1 & (self::OUT_LEFT | self::OUT_RIGHT)) != 0) {
+            if (($out1 & (self::OUT_LEFT | self::OUT_RIGHT)) !== 0) {
                 $x = $this->getX();
-                if (($out1 & self::OUT_RIGHT) != 0) {
+                if (($out1 & self::OUT_RIGHT) !== 0) {
                     $x += $this->getWidth();
                 }
-                $y1 = $y1 + ($x - $x1) * ($y2 - $y1) / ($x2 - $x1);
+                $y1 += ($x - $x1) * ($y2 - $y1) / ($x2 - $x1);
                 $x1 = $x;
             } else {
                 $y = $this->getY();
-                if (($out1 & self::OUT_BOTTOM) != 0) {
+                if (($out1 & self::OUT_BOTTOM) !== 0) {
                     $y += $this->getHeight();
                 }
-                $x1 = $x1 + ($y - $y1) * ($x2 - $x1) / ($y2 - $y1);
+                $x1 += ($y - $y1) * ($x2 - $x1) / ($y2 - $y1);
                 $y1 = $y;
             }
         }
@@ -399,17 +399,28 @@ class Rectangle2D extends RectangularShape
     /**
      * {@inheritDoc}
      */
-    public function intersects($x, $y, $w, $h)
+    public function intersects4Params($x, $y, $w, $h)
     {
         if ($this->isEmpty() || $w <= 0 || $h <= 0) {
             return false;
         }
-        $x0 = $this->getX();
-        $y0 = $this->getY();
-        return ($x + $w > $x0 &&
-            $y + $h > $y0 &&
-            $x < $x0 + $this->getWidth() &&
-            $y < $y0 + $this->getHeight());
+
+        $tw = $this->width;
+        $th = $this->height;
+        if ($w <= 0 || $h <= 0 || $tw <= 0 || $th <= 0) {
+            return false;
+        }
+        $tx = $this->x;
+        $ty = $this->y;
+        $w += $x;
+        $h += $y;
+        $tw += $tx;
+        $th += $ty;
+        //      ove$flow || intersect
+        return (($w < $x || $w > $tx) &&
+            ($h < $y || $h > $ty) &&
+            ($tw < $tx || $tw > $x) &&
+            ($th < $ty || $th > $y));        
     }
 
 
@@ -418,10 +429,10 @@ class Rectangle2D extends RectangularShape
         $args = func_get_args();
         switch (count($args)) {
             case 4:
-                return $this->containsBy4($args[0], $args[1], $args[2], $args[3]);
+                return $this->contains4Params($args[0], $args[1], $args[2], $args[3]);
                 break;
             case 2:
-                return $this->containsBy2($args[0], $args[1]);
+                return $this->contains2Params($args[0], $args[1]);
                 break;
             default:
                 throw new InvalidArgumentException('Invalid arguments count');
@@ -431,7 +442,7 @@ class Rectangle2D extends RectangularShape
     /**
      * {@inheritDoc}
      */
-    public function containsBy4($x, $y, $w, $h)
+    public function contains4Params($x, $y, $w, $h)
     {
         if ($this->isEmpty() || $w <= 0 || $h <= 0) {
             return false;
@@ -447,7 +458,7 @@ class Rectangle2D extends RectangularShape
     /**
      * {@inheritDoc}
      */
-    private function containsBy2($x, $y)
+    public function contains2Params($x, $y)
     {
         $x0 = $this->getX();
         $y0 = $this->getY();
@@ -567,7 +578,7 @@ class Rectangle2D extends RectangularShape
      * @param float $newx the X coordinate of the new point
      * @param float $newy the Y coordinate of the new point
      */
-    private function addXY($newx, $newy)
+    protected function addXY($newx, $newy)
     {
         $x1 = min($this->getMinX(), $newx);
         $x2 = max($this->getMaxX(), $newx);
@@ -605,7 +616,7 @@ class Rectangle2D extends RectangularShape
      * @param Rectangle2D $r the <code>Rectangle2D</code> to add to this
      * <code>Rectangle2D</code>.
      */
-    private function addRectangle(Rectangle2D $r)
+    protected function addRectangle(Rectangle2D $r)
     {
         $x1 = min($this->getMinX(), $r->getMinX());
         $x2 = max($this->getMaxX(), $r->getMaxX());
@@ -620,7 +631,7 @@ class Rectangle2D extends RectangularShape
         $args = func_get_args();
         switch (count($args)) {
             case 2:
-                return $this->getPathIteratorForFlatRect($args[0], $args[1]);
+                return $this->getPathIteratorByATAndFlatness($args[0], $args[1]);
                 break;
             case 1:
                 return $this->getPathIteratorForRect($args[0]);
@@ -645,7 +656,7 @@ class Rectangle2D extends RectangularShape
      *          geometry of the outline of this
      *          <code>Rectangle2D</code>, one segment at a time.
      */
-    public function getPathIteratorForRect(AffineTransform $at)
+    public function getPathIteratorByAT(AffineTransform $at)
     {
         return new RectIterator($this, $at);
     }
@@ -670,7 +681,7 @@ class Rectangle2D extends RectangularShape
      *          geometry of the outline of this
      *          <code>Rectangle2D</code>, one segment at a time.
      */
-    public function getPathIteratorForFlatRect(AffineTransform $at, $flatness)
+    public function getPathIteratorByATAndFlatness(AffineTransform $at, $flatness)
     {
         return new RectIterator($this, $at);
     }
